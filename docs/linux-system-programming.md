@@ -30,3 +30,4 @@ Multi-threading là khả năng của một CPU (hoặc một core trong CPU) x�
 
 ## Phần thực hành
 
+[hay](https://vimentor.com)
