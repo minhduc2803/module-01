@@ -3,8 +3,20 @@
 #include <string.h> 
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <iostream>
 
 #define PORT 2000
+
+using namespace std;
+
+int receive(int client_socket)
+{
+	int state;
+	char *message = (char*)&state;
+
+	int message_len = read(client_socket, message, sizeof(state));
+	return ntohl(state);
+}
 
 int main(int argc, char const *argv[])
 {
@@ -14,34 +26,45 @@ int main(int argc, char const *argv[])
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket < 0)
     {
-        printf("Client initializing run into error !!!");
+        cout << "Client initializing run into error !!!" << endl;
         return -1;
     }
 
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
 
-    if(inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0)
+    if(inet_pton(AF_INET, "127.0.1.1", &server_address.sin_addr) <= 0)
     {
-        printf("\nInvalid address or address not supported !!!");
+        cout << "Invalid address or address not supported !!!" << endl;
         return -1;
     }
 
     if(connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
-        printf("\nConnection failed \n");
+        cout << "Connection failed !!!" << endl;
         return -1;
     }
 
-    
-    while(1)
+    int state = htonl(1);
+    char *data = (char*)&state;
+    while(state)
     {
-        char * hello = "Hello from client";
-        send(client_socket,hello, strlen(hello),0);
-        char massage[1024];
-        int massage_len = read(client_socket, massage, 1024);
-        massage[massage_len] = 0;
-        printf("%s\n",massage);
+        
+        
+        send(client_socket,data, sizeof(state),0);
+
+        int ball = receive(client_socket);
+        if(ball > 0)
+            cout << ball << " ";
+        else
+        {
+            state = 2;
+            send(client_socket,data, sizeof(state),0);
+            char message[1024];
+            read(client_socket,message,1024);
+            cout << endl << message << endl;
+            break;
+        }
     }
 
     return 0;

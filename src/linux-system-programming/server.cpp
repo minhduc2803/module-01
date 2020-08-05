@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h> 
 #include <netinet/in.h>
@@ -10,56 +9,16 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <ctime>
+#include <random>
+#include <iostream>
 
 #define PORT 2000
 
 using namespace std;
 
-struct event{
-	int type;
-	int client_socket;
-	event(int type, int client_socket)
-	{
-		this->type = type;
-		this->client_socket = client_socket;
-	}
-};
-
-int main(int argc,  char const *argv[])
+void print_IP()
 {
-	const int opt = 1;
-	struct sockaddr_in address;
-	int address_len = sizeof(address);
-
-	int server_socket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-
-	if(server_socket == 0)
-	{
-		printf("Server creating socket file descriptor run into error !!!");
-		exit(EXIT_FAILURE);
-	}
-	int state = setsockopt(server_socket,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
-	if(state)
-	{
-		printf("Server attaching socket to port run into error !!!");
-		exit(EXIT_FAILURE);
-	}
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(PORT);
-
-	if(bind(server_socket, (struct sockaddr*)&address,sizeof(address)) < 0)
-	{
-		printf("Server binding run into error !!!");
-		exit(EXIT_FAILURE);
-	}
-	if(listen(server_socket, 10) < 0)
-	{
-		printf("Server listening run into error !!!");
-		exit(EXIT_FAILURE);
-	}
-
-
 	char hostbuffer[256]; 
     char *IPbuffer; 
     struct hostent *host_entry; 
@@ -70,51 +29,139 @@ int main(int argc,  char const *argv[])
     host_entry = gethostbyname(hostbuffer); 
    
     IPbuffer = inet_ntoa(*((struct in_addr*)host_entry->h_addr_list[0])); 
-	printf("Server is running on %s:%d\n",IPbuffer,PORT);
+	cout << "Server is running on " << IPbuffer << ":" << PORT << endl;
+}
+bool start_server(struct sockaddr_in * address, int address_len, const int *opt)
+{
+	
+	
 
-	queue<event> event_queue;
+	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
+	if(server_socket == 0)
+	{
+		cout << "Server creating socket file descriptor run into error !!!" << endl;
+		return -1;
+	}
+	int state = setsockopt(server_socket,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, opt, sizeof(*opt));
+	if(state)
+	{
+		cout << "Server attaching socket to port run into error !!!" << endl;
+		return -1;
+	}
+	address->sin_family = AF_INET;
+	address->sin_addr.s_addr = INADDR_ANY;
+	address->sin_port = htons(PORT);
+
+	if(bind(server_socket, (struct sockaddr*)address, address_len)< 0)
+	{
+		cout << "Server binding run into error !!!" << endl;
+		return -1;
+	}
+	if(listen(server_socket, 10) < 0)
+	{
+		cout << "Server listening run into error !!!" << endl;
+		return -1;
+	}
+
+	return server_socket;
+}
+int * create_random_balls(int n)
+{
+	int * balls = new int[n];
+	for(int i=0;i<n;i++)
+		balls[i] = i+1;
+	return balls;
+}
+int receive(int client_socket)
+{
+	int state;
+	char *message = (char*)&state;
+
+	int message_len = read(client_socket, message, sizeof(state));
+	return ntohl(state);
+}
+void handle_server(int server_socket, struct sockaddr_in *address, int *address_len)
+{
+	queue<int> event_queue;
+	srand(time(0));
+	int n = rand()%100;
+	cout << "n = " << n << endl;
+	int * balls = create_random_balls(n);
 	while(1)
 	{
-		int client_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t *)&address_len);
-		if(client_socket < 0)
+		int client_socket = accept(server_socket, (struct sockaddr *)address, (socklen_t *)address_len);
+		if(client_socket >= 0)
 		{
-			
-			
-		}
-		else
-		{
-			event e = event(1,client_socket);
-			event_queue.push(e);
+			cout << "Connection from " << client_socket << endl;
+			event_queue.push(client_socket);
 		}
 		
 		if(!event_queue.empty())
 		{
-			event e = event_queue.front();
-			event_queue.pop();
-			switch(e.type)
+			int queue_len = event_queue.size();
+			for(int i=0;i<queue_len;i++)
 			{
-				case 1:
+				client_socket = event_queue.front();
+				event_queue.pop();
+	
+				int state = receive(client_socket);
 				
-				default:
+				switch(state)
 				{
-					std::stringstream ss;
-					int client_socket = e.client_socket;
-					char massage[1024];
-					int massage_len = read(client_socket, massage, 1024);
-					massage[massage_len] = 0;
-					printf("%s\n",massage);
-					
-					send(client_socket,massage, strlen(massage),0);
-				}
+					case 1:
+					{
+						if(n<=0)
+						{
+							int ball = htonl(-1);
+							char *data = (char*)&ball;
+							send(client_socket,data, sizeof(ball),0);
+						}
+						else
+						{
+							int ball = htonl(balls[rand()%(n--)]);
+							char *data = (char*)&ball;
+							send(client_socket,data, sizeof(ball),0);
+							
+						}
+						event_queue.push(client_socket);
+						break;
+					}
+					case 2:
+					{
+						char const *data = "Done";
+						send(client_socket,data, strlen(data)+1,0);
 
+					}
+					
+
+				}
 			}
 		}
 	}
+}
 
+int main(int argc,  char const *argv[])
+{
+	const int opt = 1;
+	struct sockaddr_in address;
+	int address_len = sizeof(address);
+
+	int server_socket = start_server(&address, address_len, &opt);
+
+	if(server_socket < 0)
+		return -1;
+
+	print_IP();
+
+	int client_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t *)&address_len);
+	if(client_socket >= 0)
+	{
+		cout << "Connection from " << client_socket << endl;
+		//event_queue.push(client_socket);
+	}
 	
-  
-	
-	
+	handle_server(server_socket, &address, &address_len);
+
 	return 0;
 }
