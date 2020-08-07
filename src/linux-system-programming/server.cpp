@@ -31,23 +31,18 @@ void print_IP()
     IPbuffer = inet_ntoa(*((struct in_addr*)host_entry->h_addr_list[0])); 
 	cout << "Server is running on " << IPbuffer << ":" << PORT << endl;
 }
-bool start_server(struct sockaddr_in * address, int address_len, const int *opt)
+bool start_server(int server_socket, struct sockaddr_in * address, int address_len, const int *opt)
 {
-	
-	
-
-	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
 	if(server_socket == 0)
 	{
 		cout << "Server creating socket file descriptor run into error !!!" << endl;
-		return -1;
+		return false;
 	}
 	int state = setsockopt(server_socket,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, opt, sizeof(*opt));
 	if(state)
 	{
 		cout << "Server attaching socket to port run into error !!!" << endl;
-		return -1;
+		return false;
 	}
 	address->sin_family = AF_INET;
 	address->sin_addr.s_addr = INADDR_ANY;
@@ -56,15 +51,15 @@ bool start_server(struct sockaddr_in * address, int address_len, const int *opt)
 	if(bind(server_socket, (struct sockaddr*)address, address_len)< 0)
 	{
 		cout << "Server binding run into error !!!" << endl;
-		return -1;
+		return false;
 	}
 	if(listen(server_socket, 10) < 0)
 	{
 		cout << "Server listening run into error !!!" << endl;
-		return -1;
+		return false;
 	}
 
-	return server_socket;
+	return true;
 }
 int * create_random_balls(int n)
 {
@@ -147,19 +142,13 @@ int main(int argc,  char const *argv[])
 	struct sockaddr_in address;
 	int address_len = sizeof(address);
 
-	int server_socket = start_server(&address, address_len, &opt);
+	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+	bool flag = start_server(server_socket, &address, address_len, &opt);
 
 	if(server_socket < 0)
 		return -1;
 
 	print_IP();
-
-	int client_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t *)&address_len);
-	if(client_socket >= 0)
-	{
-		cout << "Connection from " << client_socket << endl;
-		//event_queue.push(client_socket);
-	}
 	
 	handle_server(server_socket, &address, &address_len);
 
