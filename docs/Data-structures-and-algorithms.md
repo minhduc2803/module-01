@@ -196,7 +196,45 @@ Count Min sketch có thời gian chạy O(k) và bộ nhớ O(m*k), được cho
 
 #### 1.2.4 HyperLogLog
 
-HyperLogLog dùng để đếm có bao nhiêu phần tử khác nhau trong một set.
+HyperLogLog một cấu trúc dữ liệu dùng để ước lượng có bao nhiêu phần tử khác nhau trong một set.
+
+
+<ins>Probabilistic counting</ins>
+
+Tương tự cách tính độ phức tạp backward in time của searching trong Skip list. Phải flip coin bao nhiêu lần để nhận được 10 head. Đáp án hợp lý nhất là 20. Áp dụng các số nhị phân, xét một set gồm các số nhị phân ngẫu nhiên 64 bit. Quan sát thấy có 10 số bắt đầu bằng bit 0. Ta có thể ước lượng có khoảng 20 số tự nhiên trong set, vì xác suất để một số tự nhiên bắt đầu bằng bit 0 là 50%. Còn nếu quan sát thấy có 6 số bắt đầu bằng "01" ta có thể ước lượng set có size bằng 24, vì chỉ có 25% khả năng một số bắt đầu bằng "01".
+
+Ở HyperLogLog dùng một cách đếm tiết kiệm thời gian hơn, thay vì đếm số lượng những số bắt đầu bằng 1 dãy bit nào đó, cấu trúc dữ liệu này đếm số lượng leading zero lớn nhất trong set. Ví dụ quan sát thấy trong set maximum leading zero của một set thấy bằng 4, "0000". Hỏi có bao nhiêu phần tử trong set. Câu hỏi này tương tự như: "phải tung 1 đồng xu bao nhiêu lần để thu được 4 lần liên tiếp đều ngửa (head). Đán là 16 lần. HyperLogLog dựa trên phương pháp này để ước lượng số phần tử trong set.
+
+Phần tử được đưa vào set sẽ qua một hash function, tính toán số lượng leading zero, nếu lớn hơn max leading zero hiện tại thì thay max bằng số mới. Sau cùng tại mọi thời điểm ta đều có thể ước lượng số lượng phần tử trong set nhờ số max này và kết quả bằng 2<sup>max</sup>.
+
+Phương pháp tốn thời gian O(1) và bộ nhớ O(log max), tức chỉ phải lưu số lượng max leading zero. Mà số bit để biểu diễn max bằng log<sub>2</sub>(max), mà max lại bằng log<sub>2</sub>(size). Suy ra số bit lưư trữ chỉ bằng log<sub>2</sub>(log<sub>2</sub>(size)). Đây là nguồn gốc của cái tên LogLog.
+
+<ins>**LogLog**</ins>
+
+Phương pháp trên có sai số rất lớn, mà lại chỉ đưa ra đáp án là một lũy thừa của 2 (2, 8, 128, 1024,...). HyperLogLog dùng một phương pháp "tính trung bình" để tăng độ chính xác.
+
+Lưu thêm các buckets chứa số lượng max leading zero. Các mã hash được chia thành 2 phần, một phần để quyết định index của bucket, phần còn lại dùng để đếm số leading zero.
+
+![hyperloglog](../images/data-structures-and-algorithms/hyperloglog.png)
+
+Giả xử đầu ra của hàm hash là 8 bit nhị phân.  
+HyperLogLog dùng 8 buckets để lưu max leading zero => có 3 bit quyết định index của bucket.  
+Ví dụ trên hình, ta đang thêm phần tử "00101100" vào set.  
+3 bit đầu bằng "001", vậy ta phải xem xét buckets[001], đang chứa số 0.  
+Phần bit còn lại là "01100" có 1 leading zero, lớn hơn max hiện tại ở buckets[001] (bằng 0). Vậy cập nhật buckets[001] = 1.
+
+Quá trình ước lượng sẽ tính trung bình của tất cả các buckets, giả sử được k => số lượng phần tử trong set là 2<sup>k</sub>
+
+Phương pháp này tăng độ giảm sai số của kết quả còn 1.3/sqrt(number of buckets).
+
+Researchers đã chỉ ra rằng, bỏ đi 30% những phần tử lớn nhất trong các buckets có thể giảm sai số xuống còn 1.05/sqrt(number of buckets), nhưng phương pháp này đòi hỏi phải sort các buckets.
+
+<ins>**HyperLogLog**</ins>
+
+HyperLogLog thực hiện một improve nữa, thay vì tính trung bình các buckets như bình thường, thuật toán sẽ tính trung bình bằng [harmonic mean](https://en.wikipedia.org/wiki/Harmonic_mean), phương pháp này giúp giảm sai số xuống còn 1.04/sqrt(number of buckets)
+
+
+Với thời gian O(1) và bộ nhớ O(1) (nếu coi như số bucket là một số không đổi) HyperLogLog là một thuật toán tuyệt vời được dùng rất nhiều trong thực tế, đặc biệt là trong các hệ thống lớn, cần ước lượng với số lượng lên tới hàng triệu nhưng không cần chính xác tuyệt đối. Ví dụ như ước lượng số lượng user khác nhau ghé thăm một website, ước lượng số client khác nhau ghé thăm một webserver. Ước lượng số phần tử đã được cache,...
 
 ### 1.3 Trie
 
@@ -248,8 +286,6 @@ Tốc độ searching của Trie thường được so sánh là nhanh hơn hash
 
 Bộ nhớ dùng cho Trie là rất lớn, mỗi một ký tự ta phải dùng một node để lưu trữ. 
 
-### 1.4 Cách chọn data structures phù hợp
-
 ## 2. Giải thuật
 
 ### 2.1 Search
@@ -270,10 +306,77 @@ Mặc dù có độ phức tạp rất lớn (theo n) nhưng linear search rất
 
 Quickselect là thuật toán dùng để tìm phần tử nhỏ nhất thứ k trong một chuỗi phần tử chưa được sắp xếp trước.
 
+Ý tưởng chủ đạo: Chọn ra một phần tử pivot rồi chia mảng thành 2 mảng con: một mảng gồm những phần tử nhỏ hơn pivot, mảng còn lại gồm những phần tử lớn hơn pivot. Bước chia mảng này gọi là Partition. Tùy vào vị trí của pivot và vị trí cần tìm k, quickselect sẽ chọn lặp lại bước Partition trên mảng con lớn hoặc mảng con nhỏ. Mảng con ngày càng nhỏ đi, nhờ đó tìm ra phần tử k nhanh hơn.
+
+pseudo code của Partition:
+
+```cpp
+algorithm partition(A, lo, hi) is
+    pivot := A[⌊(hi + lo) / 2⌋]
+    i := lo - 1
+    j := hi + 1
+    loop forever
+        do
+            i := i + 1
+        while A[i] < pivot
+        do
+            j := j - 1
+        while A[j] > pivot
+        if i ≥ j then
+            return j
+        swap A[i] with A[j]
+```
+
+Sau khi pick ra phần tử pivot, partition dùng 2 con trỏ i, j chạy từ 2 đầu của mảng, con trỏ i tìm phần tử lớn hơn hoặc  bằng pivot, con trỏ j tìm phần tử nhỏ hơn hoặc bằng pivot, sau đó swap 2 phần tử này, cuối khi i >= j, mảng bên trái gồm toàn những phần tử nhỏ hơn hoặc bằng pivot, mảng bên phải gồm những phần tử lớn hơn hoặc bằng pivot. 
+
+Partition có thời gian chạy O(n), bộ nhớ O(1).
+
+Nếu vị trí của pivot lớn hơn k, chứng tỏ phần tử cần nằm ở mảng bên trái, ngược lại phần tử cần tìm nằm ở mảng bên phải.
+
+C++ code:
+
+```cpp
+int partition(int arr[], int l, int r) 
+{ 
+    int x = arr[r], i = l; 
+    for (int j = l; j <= r - 1; j++) { 
+        if (arr[j] <= x) { 
+            swap(arr[i], arr[j]); 
+            i++; 
+        } 
+    } 
+    swap(arr[i], arr[r]); 
+    return i; 
+} 
+  
+int quickSelect(int arr[], int l, int r, int k) 
+{ 
+    if (k > 0 && k <= r - l + 1) { 
+  
+        int index = partition(arr, l, r); 
+  
+        if (index - l == k - 1) 
+            return arr[index]; 
+  
+        if (index - l > k - 1)  
+            return quickSelect(arr, l, index - 1, k); 
+  
+        return quickSelect(arr, index + 1, r,  k - index + l - 1); 
+    } 
+  
+    return INT_MAX; 
+} 
+```
+
+Thuật toán quickselect là một thuật toán của Tony Hoare - cha đẻ của quicksort. Có cùng ý tưởng dùng hàm Partition như quicksort. 
+
+Quickselect rất hiệu quả trong thực tế, với thời gian chạy trung bình tuyến tính O(n) và bộ nhớ chỉ O(1). Điểm yếu của quickselect là trong trường hợp xấu nhất, quickselect chạy trong thời gian O(n<sup>2</sup>). Tồn tại thuật toán tìm phần nhỏ nhất thứ k trong mảng trong thời gian O(n) (worst-case) nhưng quickselect có thời gian chạy trung bình thực tế tốt hơn.
 
 #### 2.1.3 Binary search
 
 Binary search là thuật toán tìm kiếm phần tử trong một mảng đã sắp xếp sẵn.
+
+Ý tưởng chủ đạo: 
 
 Ví dụ tìm phần tử 12 trong một mảng sắp xếp sẵn như sau:
 
