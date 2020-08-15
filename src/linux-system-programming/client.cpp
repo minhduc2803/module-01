@@ -50,10 +50,17 @@ int main(int argc, char const *argv[])
     while(state)
     {
         
-        
-        send(client_socket,data, sizeof(state),0);
+        cout << "state: " << state << endl;
 
-        int ball = receive(client_socket);
+        send(client_socket,data, sizeof(state),0);
+        
+        cout << "done send" << endl;
+        int ball;
+        char *message = (char*)&ball;
+
+        int message_len = read(client_socket, message, sizeof(ball));
+	    ball = ntohl(ball);
+        cout << "ball: " <<  ball << " ";
         if(ball > 0)
             cout << ball << " ";
         else

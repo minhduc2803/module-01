@@ -226,7 +226,7 @@ Thông thường có 4 hướng giải quyết deadlock như sau:
 
 - Avoidance: Lên lịch thật thông minh (chuẩn bị kỹ càng) cho các thread để không xảy ra deadlock.
 
-- Detection & recovery: Hệ thống kiểm tra deadlock, rồi recover bằng cách kill a processes sau đó releasing resources.
+- Detection & recovery: Hệ thống kiểm tra deadlock, rồi recover bằng cách kill processes sau đó releasing resources.
 
 - Do nothing: nếu deadlock hiếm khi xảy ra, có thể điều chỉnh nó manualy (kill process, reboot).
 

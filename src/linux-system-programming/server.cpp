@@ -100,8 +100,13 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 				client_socket = event_queue.front();
 				event_queue.pop();
 	
-				int state = receive(client_socket);
-				
+				int state;
+				char *message = (char*)&state;
+
+				int message_len = read(client_socket, message, sizeof(state));
+				state = ntohl(state);
+
+				cout << state << endl;
 				switch(state)
 				{
 					case 1:
@@ -114,7 +119,10 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 						}
 						else
 						{
-							int ball = htonl(balls[rand()%(n--)]);
+							int ball = balls[rand()%(n--)];
+							cout << "ball: " << ball << endl;
+							
+							ball = htonl(ball);
 							char *data = (char*)&ball;
 							send(client_socket,data, sizeof(ball),0);
 							
