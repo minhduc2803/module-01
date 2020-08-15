@@ -12,6 +12,8 @@
 #include <ctime>
 #include <random>
 #include <iostream>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define PORT 2000
 
@@ -68,6 +70,13 @@ int * create_random_balls(int n)
 		balls[i] = i+1;
 	return balls;
 }
+int get_ball(int * balls, int & n)
+{
+	int k = rand()%(n--);
+	int ball = balls[k];
+	balls[k] = balls[n];
+	return ball;
+}
 int receive(int client_socket)
 {
 	int state;
@@ -100,11 +109,11 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 				client_socket = event_queue.front();
 				event_queue.pop();
 	
-				int state;
-				char *message = (char*)&state;
+				int state = receive(client_socket);
+				// char *message = (char*)&state;
 
-				int message_len = read(client_socket, message, sizeof(state));
-				state = ntohl(state);
+				// int message_len = read(client_socket, message, sizeof(state));
+				// state = ntohl(state);
 
 				cout << state << endl;
 				switch(state)
@@ -119,7 +128,7 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 						}
 						else
 						{
-							int ball = balls[rand()%(n--)];
+							int ball = get_ball(balls, n);
 							cout << "ball: " << ball << endl;
 							
 							ball = htonl(ball);
@@ -151,6 +160,7 @@ int main(int argc,  char const *argv[])
 	int address_len = sizeof(address);
 
 	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+	fcntl(server_socket, F_SETFL, O_NONBLOCK);
 	bool flag = start_server(server_socket, &address, address_len, &opt);
 
 	if(server_socket < 0)

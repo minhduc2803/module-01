@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
             cout << ball << " ";
         else
         {
-            state = 2;
+            state = htonl(2);
             send(client_socket,data, sizeof(state),0);
             char message[1024];
             read(client_socket,message,1024);
