@@ -1,6 +1,6 @@
 import java.util.ArrayList;
 
-public class ChainingTable {
+public class ChainingTable extends HashTable {
     class HashNode
     {
         String key;
@@ -30,6 +30,9 @@ public class ChainingTable {
         k = 0;
         table = new HashNode[n];
 
+    }
+    public String getName(){
+        return "Chaining Table";
     }
     public int getSize(){
         return n;
@@ -70,7 +73,6 @@ public class ChainingTable {
             head = head.next;
         }
 
-        // Insert key in chain
         k++;
         head = table[bucketIndex];
         HashNode newNode = new HashNode(key, value);
@@ -100,18 +102,14 @@ public class ChainingTable {
 
         int bucketIndex = hash(key);
 
-        // Get head of chain
         HashNode head = table[bucketIndex];
 
-        // Search for key in its chain
         HashNode prev = null;
         while (head != null)
         {
-            // If Key found
             if (head.key.equals(key))
                 break;
 
-            // Else keep moving in chain
             prev = head;
             head = head.next;
         }
@@ -120,10 +118,8 @@ public class ChainingTable {
         if (head == null)
             return false;
 
-        // Reduce size
         k--;
 
-        // Remove key
         if (prev != null)
             prev.next = head.next;
         else

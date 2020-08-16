@@ -1,7 +1,7 @@
 
 
 
-public class LinearTable {
+public class LinearTable extends HashTable{
     String[][] table;
     int n, k;
 
@@ -10,6 +10,9 @@ public class LinearTable {
         k = 0;
         table = new String[n][2];
 
+    }
+    public String getName(){
+        return "Linear Table";
     }
     public int getSize(){
         return n;

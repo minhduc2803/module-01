@@ -1,6 +1,6 @@
 
 
-public class QuadraticTable {
+public class QuadraticTable extends  HashTable{
     String[][] table;
     int n, k;
 
@@ -9,7 +9,10 @@ public class QuadraticTable {
         k = 0;
         table = new String[n][2];
 
+    } public String getName(){
+        return "Quadratic Table";
     }
+
     public int getSize(){
         return n;
     }

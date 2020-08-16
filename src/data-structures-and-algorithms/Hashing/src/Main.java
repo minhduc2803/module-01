@@ -4,13 +4,14 @@ public class Main {
     public static void main(String[] args){
         Scanner scan = new Scanner(System.in);
 
-        ChainingTable lpht = new ChainingTable();
+        HashTable hashtable = new ChainingTable();
 
         int choice = 0;
 
         do
         {
-            System.out.println("\nHash Table Operations\n");
+            System.out.print(hashtable.getName());
+            System.out.println(" Operations\n");
             System.out.println("1. insert ");
             System.out.println("2. delete");
             System.out.println("3. update");
@@ -24,25 +25,25 @@ public class Main {
             {
                 case 1 :
                     System.out.println("Enter key and value");
-                    lpht.insert(scan.next(), scan.next() );
+                    hashtable.insert(scan.next(), scan.next() );
                     break;
                 case 2 :
                     System.out.println("Enter key");
-                    lpht.delete( scan.next() );
+                    hashtable.delete( scan.next() );
                     break;
                 case 3 :
                     System.out.println("Enter key and value");
-                    lpht.update(scan.next(), scan.next() );
+                    hashtable.update(scan.next(), scan.next() );
                     break;
                 case 4 :
                     System.out.println("Enter key");
-                    System.out.println("Value = "+ lpht.search( scan.next() ));
+                    System.out.println("Value = "+ hashtable.search( scan.next() ));
                     break;
                 case 5 :
-                    System.out.println("Number of elements = "+ lpht.getNumberElements() );
+                    System.out.println("Number of elements = "+ hashtable.getNumberElements() );
                     break;
                 case 6 :
-                    System.out.println("Size = "+ lpht.getSize() );
+                    System.out.println("Size = "+ hashtable.getSize() );
                     break;
                 case 7:
                     break;
