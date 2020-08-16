@@ -1,11 +1,10 @@
 
 
-
-public class LinearTable {
+public class QuadraticTable {
     String[][] table;
     int n, k;
 
-    LinearTable(){
+    QuadraticTable(){
         n = 5;
         k = 0;
         table = new String[n][2];
@@ -26,11 +25,13 @@ public class LinearTable {
     }
     int findIndex(String key){
         int i = hash(key);
+        int factor = 1;
         while (table[i][0] != null)
         {
             if (table[i][0].equals(key))
                 break;
-            i = (i + 1) % n;
+            i = (i + factor*factor) % n;
+            factor++;
         }
         return i;
 
@@ -61,11 +62,14 @@ public class LinearTable {
             resize(false);
 
         int i = hash(key);
-        while (!key.equals(table[i][0]))
-            i = (i + 1) % n;
+        int factor = 1;
+        while (!key.equals(table[i][0])) {
+            i = (i + factor*factor) % n;
+            factor++;
+        }
         table[i][0] = table[i][1] = null;
 
-        for (i = (i + 1) % n; table[i][0] != null; i = (i + 1) % n)
+        for ( i = (i + factor*factor) % n; table[i][0] != null;  i = (i + factor*factor) % n, factor++)
         {
             String tmp1 = table[i][0], tmp2 = table[i][1];
             table[i][0] = table[i][1] = null;
