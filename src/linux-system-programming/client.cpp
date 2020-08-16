@@ -47,7 +47,7 @@ int main(int argc, char const *argv[])
 
     int state = htonl(1);
     char *data = (char*)&state;
-    while(state)
+    while(1)
     {
         
         cout << "state: " << state << endl;
