@@ -234,10 +234,58 @@ Thông thường có 4 hướng giải quyết deadlock như sau:
 
 #### Semaphore
 
+SSemaphore là một kỹ thuật được dùng để đồng bộ tài nguyên và đồng bộ các luồng hoạt động.
+
+Khi được dùng với mục đích đồng bộ tài nguyên, semaphore tương tự như một bộ các chìa khóa dự phòng. Nếu một thread lấy được một chiếc chìa khóa, thread đó được phép truy cập vào tài nguyên. Nhưng nếu không còn chiếc chìa khóa nào, thread đó phải đợi cho tới khi một thread khác trả lại chìa khóa dự phòng. Nhờ vậy, race condition sẽ bị ngăn chặn.
+
+![](../images/linux-system-programming/semaphore.png)
+
+Semaphore gồm 2 thành phần chính: biến count và hàng đợi wait_list. 
+
+Căn cứ vào giá trị của biến count, semaphore được chia làm 2 loại là counting semaphore và binary semaphore.
+
+- Nếu giá trị cực đại của biến count lớn hơn 1, thì semaphore được gọi là counting semaphore. Giá trị cực đại của biến count thể hiện số lượng thread tối đa được phép sử dụng critical resource tại cùng một thời điểm.
+- Nếu biến count chỉ có hai giá trị 0 và 1, thì semaphore được gọi là binary semaphore. Binary semaphore có một số nét tương đồng với mutex lock.
+
+
 #### Reader Writer Problem
+
+[Tham khảo](https://www.tutorialspoint.com/readers-writers-problem)
+
 
 ### 2.4 Networking
 
-## Phần thực hành
+#### TCP và UDP
 
-[hay](https://vimentor.com)
+| TCP | UDP |
+|-----|-----|
+| Đảm bảo rằng dữ liệu đến đúng như khi được gửi. | Không đảm bảo dữ liệu đến.|
+|Kiểm tra lỗi các luồng dữ liệu.| Không cung cấp tính năng kiểm tra lỗi.|
+|Header 20 byte cho phép 40 byte dữ liệu tùy chọn.| Header 8 byte chỉ cho phép dữ liệu bắt buộc.|
+|Chậm hơn UDP.| Nhanh hơn TCP.|
+|Tốt nhất cho các ứng dụng yêu cầu độ tin cậy.|Tốt nhất cho các ứng dụng yêu cầu tốc độ.|
+   
+Cả hai giao thức đều gửi dữ liệu qua internet dưới dạng gói. Trong đó, TCP thiên về kết nối. Sau khi kết nối được thực hiện, dữ liệu sẽ di chuyển theo hai chiều. UDP là một giao thức đơn giản hơn không có kết nối.
+
+TCP mạnh hơn UDP. Nó cung cấp các chức năng sửa lỗi và độ tin cậy cao. UDP nhanh hơn TCP, chủ yếu vì nó không cung cấp khả năng sửa lỗi. Ngoài ra, TCP xử lý kiểm soát luồng, trong khi UDP không có tùy chọn để kiểm soát luồng.
+    
+TCP và UDP đều là các giao thức được sử dụng để gửi các bit dữ liệu - được gọi là các gói tin - qua Internet. Cả hai giao thức đều được xây dựng trên giao thức IP.
+
+#### Nonblocking I/O và Blocking I/O
+
+Chương trình blocking I/O là một chương trình sẽ đợi xử lý I/O hoàn tất rồi mới tiếp tục thực thi, ngược lại, chương trình nonblocking I/O sẽ tiếp tục thực thi trong trong khi đợi I/O hoàn tất.
+
+Ví dụ chương trình server sau viết trong C++ dùng hàm accept để lấy kết nối từ client:
+
+```cpp
+int client_socket = accept(server_socket, (struct sockaddr *)address, (socklen_t *)address_len);
+    if(client_socket >= 0)
+    {
+        cout << "Connection from " << client_socket << endl;
+        event_queue.push(new event(client_socket,1));
+    }
+```
+
+Hàm accept được default là một hàm blocking, khi không có client nào kết nối, chương trình sẽ đợi (block) tại hàm này mà không bao giờ chạy xuống câu lệnh phía dưới.
+
+Xử lý nonblocking I/O mang tới tính linh hoạt cho chương trình, chương trình không bị block và lãng phí tài nguyên.
