@@ -19,6 +19,19 @@
 
 using namespace std;
 
+struct event{
+    int type;
+    int client_socket;
+	int sum, number_of_balls, quantity_rank, quality_rank;
+	event(int client_socket, int type){
+		this->type = type;
+		this->client_socket = client_socket;
+		this->quantity_rank = 0;
+		this->quality_rank = 0;
+	}
+	~event(){};
+};
+
 void print_IP()
 {
 	char hostbuffer[256]; 
@@ -70,6 +83,7 @@ int * create_random_balls(int n)
 		balls[i] = i+1;
 	return balls;
 }
+
 int get_ball(int * balls, int & n)
 {
 	int k = rand()%(n--);
@@ -77,19 +91,107 @@ int get_ball(int * balls, int & n)
 	balls[k] = balls[n];
 	return ball;
 }
-int receive(int client_socket)
+char* receive(int client_socket)
 {
-	int state;
-	char *message = (char*)&state;
+	char * result = new char[4096];
+	char *temp = result;
+	while(1){
 
-	int message_len = read(client_socket, message, sizeof(state));
-	return ntohl(state);
+		int len = read(client_socket,temp,1024);
+		if(len == 0 && temp == result)
+			return NULL;
+
+		if(temp[len]==0)
+			break;
+		else
+			temp = temp+len;
+	}
+	return result;
+}
+void sendFull(int client_socket, const char * message){
+	int len = strlen(message) + 1;
+	int s = 0;
+	while(1){
+		s += send(client_socket,message, len-s,0);
+		if(s >= len)
+			break;
+	}
+}
+void send_number(int client_socket, int number){
+	string s = to_string(number);
+	const char * message = s.c_str();
+	sendFull(client_socket,message);
+}
+int receive_number(int client_socket){
+    int number = -1;
+	char * message = receive(client_socket);
+    if(message != NULL){
+        stringstream ss;
+        ss << message;
+        ss >> number;
+    }
+	return number;
+}
+void finish(queue<event*> event_queue)
+{
+	int size = event_queue.size();
+	event ** event_array = new event*[size];
+
+	for(int i = 0;i<size;i++){
+		event_array[i] = event_queue.front();
+		event_queue.pop();
+	}
+
+	for(int i = 0;i<size-1;i++){
+		int qt = i;
+		for(int j = i+1;j<size;j++){
+			if(event_array[qt]->sum < event_array[j]->sum)
+				qt = j;
+			
+		}
+		event * temp = event_array[i];
+		event_array[i] = event_array[qt];
+		event_array[qt] = temp;
+		event_array[i]->quantity_rank = i+1;
+	}
+	event_array[size-1]->quantity_rank = size;
+
+	for(int i = 0;i<size-1;i++){
+		int ql = i;
+		for(int j = i+1;j<size;j++){
+			if(event_array[ql]->number_of_balls < event_array[j]->number_of_balls)
+				ql = j;
+			
+		}
+		event * temp = event_array[i];
+		event_array[i] = event_array[ql];
+		event_array[ql] = temp;
+		event_array[i]->quality_rank = i+1;
+	}
+	event_array[size-1]->quality_rank = size;
+
+	for(int i=0;i<size;i++){
+		stringstream ss;
+		ss << "Quality rank: " << event_array[i]->quality_rank << endl;
+		ss << "Sum of balls: " << event_array[i]->sum << endl;
+		ss << "Quantity rank: " << event_array[i]->quantity_rank << endl;
+		ss << "Number of balls: " << event_array[i]->number_of_balls << endl;
+	
+		string s = ss.str();
+		const char * message = s.c_str();
+
+		printf("\nclient: %d\n%s\n",event_array[i]->client_socket,message);
+		sendFull(event_array[i]->client_socket, message);
+	}
+
 }
 void handle_server(int server_socket, struct sockaddr_in *address, int *address_len)
 {
-	queue<int> event_queue;
+	queue<event*> event_queue;
+
 	srand(time(0));
-	int n = rand()%100;
+	int n = rand()%901+100;
+	int origin_n = n, collect_balls = 0;
 	cout << "n = " << n << endl;
 	int * balls = create_random_balls(n);
 	while(1)
@@ -98,7 +200,7 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 		if(client_socket >= 0)
 		{
 			cout << "Connection from " << client_socket << endl;
-			event_queue.push(client_socket);
+			event_queue.push(new event(client_socket,1));
 		}
 		
 		if(!event_queue.empty())
@@ -106,46 +208,68 @@ void handle_server(int server_socket, struct sockaddr_in *address, int *address_
 			int queue_len = event_queue.size();
 			for(int i=0;i<queue_len;i++)
 			{
-				client_socket = event_queue.front();
+				event * e = event_queue.front();
 				event_queue.pop();
 	
-				int state = receive(client_socket);
-				// char *message = (char*)&state;
-
-				// int message_len = read(client_socket, message, sizeof(state));
-				// state = ntohl(state);
-
-				cout << state << endl;
-				switch(state)
+				int type = e->type;
+				int client_socket = e->client_socket;
+				
+				switch(type)
 				{
 					case 1:
 					{
+						char * state = receive(client_socket);
+						if(state == NULL)
+							break;
+
 						if(n<=0)
 						{
-							int ball = htonl(-1);
-							char *data = (char*)&ball;
-							send(client_socket,data, sizeof(ball),0);
+							send_number(client_socket, -1);
+							e->type = 2;
 						}
 						else
 						{
 							int ball = get_ball(balls, n);
-							cout << "ball: " << ball << endl;
-							
-							ball = htonl(ball);
-							char *data = (char*)&ball;
-							send(client_socket,data, sizeof(ball),0);
+							cout << "ball: " << ball << " to " << client_socket << endl;
+					
+							send_number(client_socket, ball);
 							
 						}
-						event_queue.push(client_socket);
+						event_queue.push(e);
 						break;
 					}
 					case 2:
 					{
-						char const *data = "Done";
-						send(client_socket,data, strlen(data)+1,0);
+            			char * result = receive(client_socket);
 
+						stringstream ss;
+						ss << result;
+						int sum = 0, number_of_balls = 0, temp;
+
+						while(ss >> temp){
+							sum += temp;
+							number_of_balls++;
+							collect_balls++;
+						}
+						
+						if(result != NULL){
+							e->type = 3;
+							e->sum = sum;
+							e->number_of_balls = number_of_balls;
+						}
+
+						event_queue.push(e);
+						
+						break;
 					}
-					
+					case 3:
+					{
+						event_queue.push(e);
+						if(collect_balls == origin_n){
+							finish(event_queue);
+							return;
+						}
+					}
 
 				}
 			}

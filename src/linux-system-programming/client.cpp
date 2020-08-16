@@ -4,20 +4,53 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <iostream>
+#include <sstream>
 
 #define PORT 2000
 
 using namespace std;
 
-int receive(int client_socket)
+
+
+char* receive(int client_socket)
 {
-	int state;
-	char *message = (char*)&state;
+	char * result = new char[4096];
+	char *temp = result;
+	while(1){
 
-	int message_len = read(client_socket, message, sizeof(state));
-	return ntohl(state);
+		int len = read(client_socket,temp,1024);
+
+		if(temp[len]==0)
+			break;
+		else
+			temp = temp+len;
+	}
+	return result;
 }
-
+void sendFull(int client_socket, const char * message){
+	int len = strlen(message) + 1;
+	int s = 0;
+	while(1){
+		s += send(client_socket,message, len-s,0);
+		if(s >= len)
+			break;
+	}
+}
+void send_number(int client_socket, int number){
+	string s = to_string(number);
+	const char * message = s.c_str();
+	sendFull(client_socket,message);
+}
+int receive_number(int client_socket){
+    int number = -1;
+	char * message = receive(client_socket);
+    if(message != NULL){
+        stringstream ss;
+        ss << message;
+        ss >> number;
+    }
+	return number;
+}
 int main(int argc, char const *argv[])
 {
 
@@ -45,31 +78,25 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    int state = htonl(1);
-    char *data = (char*)&state;
+    int state = 1;
+    stringstream ss;
     while(1)
     {
         
-        cout << "state: " << state << endl;
-
-        send(client_socket,data, sizeof(state),0);
+        send_number(client_socket, state);
         
-        cout << "done send" << endl;
-        int ball;
-        char *message = (char*)&ball;
+        int ball = receive_number(client_socket);
 
-        int message_len = read(client_socket, message, sizeof(ball));
-	    ball = ntohl(ball);
-        cout << "ball: " <<  ball << " ";
         if(ball > 0)
-            cout << ball << " ";
-        else
+            ss << ball << " ";
+        else if(ball < 0)
         {
-            state = htonl(2);
-            send(client_socket,data, sizeof(state),0);
-            char message[1024];
-            read(client_socket,message,1024);
-            cout << endl << message << endl;
+            string temp = ss.str();
+            const char* message = temp.c_str();
+            sendFull(client_socket, message);
+
+            char * result = receive(client_socket);
+            printf("result:\n%s\n",result);
             break;
         }
     }
