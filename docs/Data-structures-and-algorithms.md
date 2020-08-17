@@ -166,6 +166,68 @@ Ví dụ: chọn tỉ lệ sai bằng 0.001, số filter bằng 4, số lượng
 
 #### 1.2.2 Cockoo filters
 
+Cũng như Bloom filter, Cuckoo filter dùng để test một phần tử có nằm trong một set hay không.
+
+Cuckoo filter dựa trên Cuckoo hashing làm phương pháp xử lý đụng độ trong hashtable. 
+
+<ins>Cuckoo hashing</ins>
+
+Cuckoo hashing sử dụng 2 hàm hash độc lập và 2 dãy các buckets cho mỗi hash function.
+
+Khi thêm một phần tử x vào set:
+
+- Bắt đầu thêm x vào buckets thứ nhất, sử dụng hàm hash thứ nhất tính h<sub>1</sub>(x).
+- Nếu h<sub>1</sub>(x) empty, thêm x vào vị trí đó.
+- Nếu không, lấy phần tử tại h<sub>1</sub>(x) ra, thêm x vào vị trí đó, sau đó cố gắng thêm phần tử mới lấy ra vào buckets thứ 2.
+- Thêm phần tử mới vào buckets thứ 2 dùng hàm hash thứ 2, quá trình này cứ tiếp diễn cho tới khi mọi phần tử được ổn định, thuật toán sẽ nhảy qua lại giữa 2 buckets.
+
+Cuckoo hashing có khả năng rơi vào vòng lặp vô hạn (khi cứ lấy phần tử ra và thêm mới lại vào buckets). Cách duy nhất là rebuild lại hashtable, lấy lượng buckets lớn hơn hoặc thay đổi hàm hash.
+
+<ins>Partial-key Cuckoo hashing</ins>
+
+Cuckoo filter sử dụng Partial -key Cuckoo hash table để lưu trữ các "fingerprints" của những phần tử được insert. Fingerprint của một phần tử là một bit string lấy ra từ việc hash phần tử đó.
+
+Cuckoo filter dùng một buckets chứa một chuỗi các bucket, mỗi bucket lại chứa các entry để lưu các fingerprint của phần tử.
+
+![](../images/data-structures-and-algorithms/cuckoo-buckets.png)
+
+Cuckoo hashing yêu cầu phải có phần tử ban đầu để rehash khi cần, trong khi Cuckoo filter chỉ lưu trữ fingerprint của phần tử nên không có cách nào để restore và rehash phần tử ban đầu. Partial-key cuckoo hashing là kỹ thuật được dùng để relocate fingerprint của phần tử khi cần.
+
+Với một phần tử x, index của của 2 thành phần buckets được tính toán như sau:
+
+    h<sub>1</sub>(x) = hash(x)
+    h<sub>2</sub>(x) = h<sub>1</sub>(x) ⊕ hash(x's fingerprint)
+
+⊕ là phép XOR 2 phần tử.
+
+Phép XOR trên đảm bảo rằng h<sub>1</sub>(x) cũng có thể được tính từ h<sub>2</sub>(x) chỉ với fingerprint của phần tử. 
+
+Thuật toán
+
+```python
+f = fingerprint(x);
+i1 = hash(x);
+i2 = i1 ⊕ hash(f);if bucket[i1] or bucket[i2] has an empty entry then
+   add f to that bucket;
+   return Done;
+
+// must relocate existing items;
+i = randomly pick i1 or i2;
+for n = 0; n < MaxNumKicks; n++ do
+   randomly select an entry e from bucket[i];
+   swap f and the fingerprint stored in entry e;
+   i = i ⊕ hash(f);
+   if bucket[i] has an empty entry then
+      add f to bucket[i];
+      return Done;
+      
+// Hashtable is considered full;
+return Failure;
+```
+
+
+Cuckoo filter được đánh giá là chiếm bộ nhớ ít hơn, tỉ lệ chính xác cao hơn Bloom filter. Hơn nữa Cuckoo filter còn hỗ trợ deleting element.
+
 #### 1.2.3 Count Min sketch
 
 Count Min Sketch dùng để đếm số lần một phần tử được đưa vào set.

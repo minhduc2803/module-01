@@ -1,8 +1,12 @@
 package vn.com.zalopay.syllabus.predictive.service;
 
+import org.openjdk.jmh.util.FileUtils;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 public class TrieDictionary implements Dictionary{
     class TrieNode {
@@ -54,6 +58,11 @@ public class TrieDictionary implements Dictionary{
 
     public TrieDictionary() {
         root = new TrieNode(' ');
+    }
+    public TrieDictionary(Set<String> dataset){
+        for(String s: dataset){
+            insert(s);
+        }
     }
 
     public void insert(String word) {
