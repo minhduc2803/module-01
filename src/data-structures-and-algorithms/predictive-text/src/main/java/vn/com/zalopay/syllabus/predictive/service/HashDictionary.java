@@ -32,6 +32,12 @@ public class HashDictionary implements Dictionary {
 
     }
     public HashDictionary(Set<String> dataset){
+        n = 5;
+        k = 0;
+        table = new HashNode[n];
+
+        if(dataset == null)
+            return;
         for(String s: dataset){
             insert(s);
         }
@@ -50,6 +56,8 @@ public class HashDictionary implements Dictionary {
         for(int i=1;i<=key.length();i++){
             s += s*19+key.charAt(i-1)*i;
         }
+        if(s < 0)
+            s = -s;
         return s % n;
     }
     int findIndex(String key){

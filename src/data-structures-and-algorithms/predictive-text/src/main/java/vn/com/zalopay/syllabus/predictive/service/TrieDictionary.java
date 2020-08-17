@@ -60,6 +60,9 @@ public class TrieDictionary implements Dictionary{
         root = new TrieNode(' ');
     }
     public TrieDictionary(Set<String> dataset){
+        root = new TrieNode(' ');
+        if(dataset == null)
+            return;
         for(String s: dataset){
             insert(s);
         }

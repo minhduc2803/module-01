@@ -10,8 +10,9 @@ import java.util.Set;
 public class ReadFile {
     public static Set<String> importData(String filename){
         Set<String> dataset = new HashSet<>();
-        File folder = new File("filename");
+        File folder = new File(filename);
 
+        System.out.println(folder);
         File[] listOfFiles = folder.listFiles();
 
         if(listOfFiles == null)
