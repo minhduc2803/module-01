@@ -52,7 +52,8 @@ public class PredictiveText {
           System.out.println("Enter a word");
           String word = myObj.next();
           List a = TDict.autocomplete(word);
-          for (int i = 0; i < a.size(); i++) {
+          int len = a.size() > 10 ? 10 : a.size();
+          for (int i = 0; i < len; i++) {
             System.out.println(a.get(i));
           }
           break;
